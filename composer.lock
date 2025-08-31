@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7be8e09d44614a12dc1550db350130e2",
+    "content-hash": "8f7578b817cbfc577768857311908427",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -679,6 +679,54 @@
                 }
             ],
             "time": "2024-10-09T13:47:03+00:00"
+        },
+        {
+            "name": "ebess/advanced-nova-media-library",
+            "version": "5.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ebess/advanced-nova-media-library.git",
+                "reference": "f422e316d8255c204fcc5fd61e1542d2e5c5caba"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ebess/advanced-nova-media-library/zipball/f422e316d8255c204fcc5fd61e1542d2e5c5caba",
+                "reference": "f422e316d8255c204fcc5fd61e1542d2e5c5caba",
+                "shasum": ""
+            },
+            "require": {
+                "laravel/framework": "^8.0|^9.0|^10.0|^11.0|^12.0",
+                "laravel/nova": "^5.0",
+                "php": ">=7.4",
+                "spatie/laravel-medialibrary": "^8.0|^9.0|^10.0|^11.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Ebess\\AdvancedNovaMediaLibrary\\AdvancedNovaMediaLibraryServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Ebess\\AdvancedNovaMediaLibrary\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Laravel Nova tools for managing the Spatie media library.",
+            "keywords": [
+                "laravel",
+                "nova"
+            ],
+            "support": {
+                "issues": "https://github.com/ebess/advanced-nova-media-library/issues",
+                "source": "https://github.com/ebess/advanced-nova-media-library/tree/5.1"
+            },
+            "time": "2025-03-17T07:22:02+00:00"
         },
         {
             "name": "egulias/email-validator",
