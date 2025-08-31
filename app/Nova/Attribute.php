@@ -3,10 +3,11 @@
 namespace App\Nova;
 
 use Illuminate\Http\Request;
-use Laravel\Nova\Fields\ID;
-use Laravel\Nova\Fields\Text;
-use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\HasMany;
+use Laravel\Nova\Fields\ID;
+use Laravel\Nova\Fields\Number;
+use Laravel\Nova\Fields\Select;
+use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
 class Attribute extends Resource
@@ -56,18 +57,25 @@ class Attribute extends Resource
                 ->sortable()
                 ->rules('required', 'string', 'max:100', 'unique:attributes,name,{{resourceId}}'),
 
-            // RF-ADM-002: Campo para el tipo de display (e.g., 'color_swatch').
-            Text::make('Display Type')
+            // RF-ADM-002: Improved field for display type.
+            // We now use a Select field to provide a controlled list of options,
+            // improving usability and preventing data entry errors.
+            Select::make('Display Type')
+                ->options([
+                    'button' => 'Buttons (Selectable Text Boxes)',
+                    'color_swatch' => 'Color Swatch (Visual Color Selector)',
+                    'image_swatch' => 'Image Swatch (Visual Image Selector)',
+                ])
                 ->sortable()
-                ->rules('required', 'string', 'max:50')
-                ->help('E.g., "color_swatch", "button", "select". Used by the frontend.'),
+                ->rules('required')
+                ->help('Select how this attribute\'s options should be displayed on the storefront.'),
 
             Number::make('Sort Order')
                 ->sortable()
                 ->rules('required', 'integer', 'min:0')
                 ->default(0),
 
-            // Relación para ver los valores asociados directamente desde el detalle del atributo.
+            // Relationship to see associated values directly from the attribute's detail view.
             HasMany::make('Attribute Values', 'values', AttributeValue::class),
         ];
     }
@@ -116,3 +124,4 @@ class Attribute extends Resource
         return [];
     }
 }
+

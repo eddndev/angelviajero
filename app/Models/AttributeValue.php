@@ -10,17 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 /**
  * App\Models\AttributeValue
  *
- * Representa un valor específico para un atributo, como "Rojo" para el atributo "Color".
- *
- * @property int $id
- * @property int $attribute_id
- * @property string $value
- * @property array|null $metadata
- * @property int $sort_order
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\Attribute $attribute
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Sku[] $skus
+ * Represents a specific option for a given Attribute (e.g., "Red" for "Color").
+ * This is a core component of the EAV (Entity-Attribute-Value) system for product variations.
  */
 class AttributeValue extends Model
 {
@@ -35,6 +26,7 @@ class AttributeValue extends Model
 
     /**
      * The attributes that are mass assignable.
+     * This prevents mass assignment vulnerabilities.
      *
      * @var array<int, string>
      */
@@ -46,18 +38,43 @@ class AttributeValue extends Model
     ];
 
     /**
-     * The attributes that should be cast.
+     * The attributes that should be cast to native types.
+     * 'metadata' is cast to an array, allowing easy access to JSON data.
      *
      * @var array<string, string>
      */
     protected $casts = [
         'metadata' => 'array',
-        'sort_order' => 'integer',
     ];
 
     /**
-     * Define la relación inversa con el atributo al que pertenece.
-     * Un valor (ej. "Rojo") pertenece a un único atributo (ej. "Color").
+     * The "booted" method of the model.
+     * This is the ideal place to register model event listeners that handle
+     * business logic and data integrity.
+     *
+     * @return void
+     */
+    protected static function booted(): void
+    {
+        // Register a listener for the "saving" event. This hook runs automatically
+        // whenever a model is created or updated, just before it's written to the database.
+        static::saving(function (self $attributeValue) {
+            // Use Laravel's data_get helper to safely access the nested 'name' key from the metadata JSON.
+            // This prevents errors if 'metadata' is null or 'name' doesn't exist.
+            $colorName = data_get($attributeValue->metadata, 'name');
+            
+            // If a color name exists in the metadata, we ensure the main 'value' column
+            // is populated with it. This architectural decision solves two problems:
+            // 1. It satisfies the NOT NULL database constraint on the 'value' column.
+            // 2. It keeps the primary textual representation consistent for searching and display purposes.
+            if ($colorName) {
+                $attributeValue->value = $colorName;
+            }
+        });
+    }
+
+    /**
+     * Get the parent Attribute that this value belongs to.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
@@ -67,14 +84,14 @@ class AttributeValue extends Model
     }
 
     /**
-     * Define la relación muchos a muchos con los SKUs.
-     * Un valor de atributo es parte de la definición de múltiples SKUs.
+     * Get all of the SKUs that are assigned this attribute value.
+     * This defines the many-to-many relationship via the 'sku_attribute_map' pivot table.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
     public function skus(): BelongsToMany
     {
-        return $this->belongsToMany(Sku::class, 'sku_attribute_map')
-            ->withTimestamps();
+        return $this->belongsToMany(Sku::class, 'sku_attribute_map');
     }
 }
+

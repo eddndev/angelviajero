@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Fortify\Features;
 use Laravel\Nova\Nova;
@@ -16,8 +18,16 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
     public function boot(): void
     {
         parent::boot();
+        Nova::remoteScript(asset('vendor/nova/app.js'));
+        Nova::remoteScript(asset('/build/assets/attribute-value-form-tZfR7sqE.js'));
 
-        //
+        Nova::footer(function (Request $request) {
+            return Blade::render('
+                <div class="text-center text-sm opacity-75">
+                    &copy; '.now()->format('Y').' AngelViajero — Panel de administración
+                </div>
+            ');
+        });
     }
 
     /**
