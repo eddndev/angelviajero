@@ -4,6 +4,8 @@ namespace App\Nova;
 
 use Illuminate\Http\Request;
 use Laravel\Nova\Auth\PasswordValidationRules;
+use Laravel\Nova\Fields\Boolean;
+use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\Gravatar;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Password;
@@ -63,6 +65,20 @@ class User extends Resource
                 ->onlyOnForms()
                 ->creationRules($this->passwordRules())
                 ->updateRules($this->optionalPasswordRules()),
+
+            Boolean::make('Is Admin')
+            ->sortable()
+            ->help('Otorgar a este usuario acceso completo al panel de administración de Nova.'),
+
+            DateTime::make('Created At')
+                ->exceptOnForms()
+                ->sortable()
+                ->displayUsing(fn ($value) => $value->format('d/m/Y H:i')),
+
+            DateTime::make('Updated At')
+                ->exceptOnForms()
+                ->sortable()
+                ->displayUsing(fn ($value) => $value->format('d/m/Y H:i')),
         ];
     }
 
