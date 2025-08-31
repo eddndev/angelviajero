@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
+        Schema::create('attributes', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('slug')->unique();
-            $table->foreignId('parent_id')->nullable()->constrained('categories')->onDelete('set null');
-            $table->string('path', 512)->nullable()->index();
-            $table->integer('level')->default(0);
+            $table->string('name', 100)->unique();
+            $table->string('display_type', 50);
+            $table->integer('sort_order')->default(0);
             $table->timestamps();
         });
     }
@@ -27,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('attributes');
     }
 };

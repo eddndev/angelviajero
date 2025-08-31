@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sku_attribute_map', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+            $table->foreignId('sku_id')->constrained('skus')->onDelete('cascade');
+            $table->foreignId('attribute_value_id')->constrained('attribute_values')->onDelete('cascade');
+            $table->primary(['sku_id', 'attribute_value_id']);
         });
     }
 

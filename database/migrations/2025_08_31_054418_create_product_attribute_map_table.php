@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product_attribute_map', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->foreignId('attribute_id')->constrained('attributes')->onDelete('cascade');
+            $table->primary(['product_id', 'attribute_id']);
         });
     }
 

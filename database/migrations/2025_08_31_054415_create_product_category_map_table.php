@@ -12,8 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product_category_map', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
+            $table->boolean('is_primary')->default(false);
+
+            $table->primary(['product_id', 'category_id']);
         });
     }
 
