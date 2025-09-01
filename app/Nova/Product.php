@@ -2,6 +2,7 @@
 
 namespace App\Nova;
 
+use App\Http\Requests\StoreProductRequest;
 use Ebess\AdvancedNovaMediaLibrary\Fields\Images;
 use Illuminate\Http\Request;
 use Laravel\Nova\Fields\ID;
@@ -83,9 +84,12 @@ class Product extends Resource
                     ->default(true),
 
                 // Campo para gestionar las imágenes polimórficas con el paquete avanzado.
-                Images::make('Images', 'default') // 'default' es el nombre de la Media Collection.
-                    ->conversionOnIndexView('thumbnail') // Asume que tienes una conversión 'thumbnail'.
-                    ->multiple(),
+                Images::make('Images', 'default')
+                    ->conversionOnIndexView('thumbnail')
+                    ->setFileName(function($originalFilename, $extension, $model){
+                        // Opcional: Renombra los archivos para mantenerlos organizados.
+                        return md5($originalFilename . time()) . '.' . $extension;
+                    }),
             ]),
 
             // Panel para gestionar las relaciones de organización y variación.
@@ -148,5 +152,25 @@ class Product extends Resource
     public function actions(NovaRequest $request)
     {
         return [];
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     */
+    public static function rulesForCreation(NovaRequest $request): array
+    {
+        return (new StoreProductRequest())->rules();
+    }
+
+    /**
+     * Get the validation rules that apply to the request for update.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     */
+    public static function rulesForUpdate(NovaRequest $request, ?\Laravel\Nova\Resource $resource = null): array
+    {
+        return (new StoreProductRequest)->rules();
     }
 }

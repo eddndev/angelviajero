@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * App\Models\Sku
@@ -134,5 +135,27 @@ class Sku extends Model implements HasMedia
         return EloquentAttribute::make(
             get: fn () => $this->is_on_sale ? $this->sale_price : $this->price,
         );
+    }
+
+    /**
+     * Registra las conversiones de medios para el modelo.
+     *
+     * @param \Spatie\MediaLibrary\MediaCollections\Models\Media|null $media
+     * @throws \Spatie\Image\Exceptions\InvalidManipulation
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        // Conversión para la vista previa en el panel de Nova.
+        $this->addMediaConversion('thumbnail')
+              ->width(200)
+              ->height(200)
+              ->sharpen(10)
+              ->performOnCollections('default');
+
+        // Conversión a formato WebP para el frontend.
+        $this->addMediaConversion('webp')
+              ->format('webp')
+              ->quality(80)
+              ->performOnCollections('default');
     }
 }

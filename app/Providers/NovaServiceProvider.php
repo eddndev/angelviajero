@@ -23,8 +23,13 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
 
         Nova::footer(function (Request $request) {
             return Blade::render('
-                <div class="text-center text-sm opacity-75">
-                    &copy; '.now()->format('Y').' AngelViajero — Panel de administración
+                <div class="flex flex-col items-center gap-1 text-center text-sm opacity-75">
+                    <div>
+                        &copy; '.now()->format('Y').' <strong>AngelViajero</strong> · Todos los derechos reservados
+                    </div>
+                    <div class="opacity-60">
+                        Ambiente: '.e(app()->environment()).'
+                    </div>
                 </div>
             ');
         });

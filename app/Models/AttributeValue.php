@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * App\Models\AttributeValue
@@ -13,9 +16,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Represents a specific option for a given Attribute (e.g., "Red" for "Color").
  * This is a core component of the EAV (Entity-Attribute-Value) system for product variations.
  */
-class AttributeValue extends Model
+class AttributeValue extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, InteractsWithMedia;
 
     /**
      * The table associated with the model.
@@ -26,7 +29,6 @@ class AttributeValue extends Model
 
     /**
      * The attributes that are mass assignable.
-     * This prevents mass assignment vulnerabilities.
      *
      * @var array<int, string>
      */
@@ -39,7 +41,6 @@ class AttributeValue extends Model
 
     /**
      * The attributes that should be cast to native types.
-     * 'metadata' is cast to an array, allowing easy access to JSON data.
      *
      * @var array<string, string>
      */
@@ -49,28 +50,59 @@ class AttributeValue extends Model
 
     /**
      * The "booted" method of the model.
-     * This is the ideal place to register model event listeners that handle
-     * business logic and data integrity.
      *
      * @return void
      */
     protected static function booted(): void
     {
-        // Register a listener for the "saving" event. This hook runs automatically
-        // whenever a model is created or updated, just before it's written to the database.
         static::saving(function (self $attributeValue) {
-            // Use Laravel's data_get helper to safely access the nested 'name' key from the metadata JSON.
-            // This prevents errors if 'metadata' is null or 'name' doesn't exist.
+            // This logic ensures the 'value' column, which has a NOT NULL constraint,
+            // is always populated with a sensible default, maintaining data integrity.
+
+            // 1. Prioritize the color name from metadata if it exists.
             $colorName = data_get($attributeValue->metadata, 'name');
-            
-            // If a color name exists in the metadata, we ensure the main 'value' column
-            // is populated with it. This architectural decision solves two problems:
-            // 1. It satisfies the NOT NULL database constraint on the 'value' column.
-            // 2. It keeps the primary textual representation consistent for searching and display purposes.
             if ($colorName) {
                 $attributeValue->value = $colorName;
+                return; // Exit early if we have a color name.
+            }
+
+            // 2. If it's a new model and the 'value' is empty (which happens with image_swatch),
+            // we will temporarily set a placeholder. Spatie Media Library runs its processes
+            // *after* the initial model save, so we can't get the filename yet.
+            if (is_null($attributeValue->value) && !$attributeValue->exists) {
+                 $attributeValue->value = 'image_placeholder_' . uniqid();
             }
         });
+
+        // Use the 'saved' event to get access to the media file *after* it has been processed by Spatie.
+        static::saved(function (self $attributeValue) {
+            // Check if the value is our temporary placeholder.
+            if (str_starts_with($attributeValue->value, 'image_placeholder_')) {
+                // Get the first media item from the 'swatch_image' collection.
+                $media = $attributeValue->getFirstMedia('swatch_image');
+                if ($media) {
+                    // Update the value with the actual filename and save without triggering events.
+                    $attributeValue->value = $media->file_name;
+                    $attributeValue->saveQuietly();
+                }
+            }
+        });
+    }
+
+    /**
+     * Define the media collections and their conversions.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('swatch_image')
+            ->singleFile() // Restrict to a single file
+            ->registerMediaConversions(function (Media $media) {
+                $this
+                    ->addMediaConversion('swatch')
+                    ->width(50)
+                    ->height(50)
+                    ->sharpen(10);
+            });
     }
 
     /**
@@ -85,7 +117,6 @@ class AttributeValue extends Model
 
     /**
      * Get all of the SKUs that are assigned this attribute value.
-     * This defines the many-to-many relationship via the 'sku_attribute_map' pivot table.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
@@ -94,4 +125,3 @@ class AttributeValue extends Model
         return $this->belongsToMany(Sku::class, 'sku_attribute_map');
     }
 }
-

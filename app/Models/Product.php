@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * App\Models\Product
@@ -121,5 +122,28 @@ class Product extends Model implements HasMedia
         // Se asegura de traer solo las propiedades cuyo sku_id es nulo,
         // es decir, las que pertenecen directamente al producto.
         return $this->hasMany(Property::class)->whereNull('sku_id');
+    }
+
+    /**
+     * Registra las conversiones de medios para el modelo.
+     *
+     * @param \Spatie\MediaLibrary\MediaCollections\Models\Media|null $media
+     * @throws \Spatie\Image\Exceptions\InvalidManipulation
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+
+        // Conversión para la vista previa en el panel de Nova.
+        $this->addMediaConversion('thumbnail')
+              ->width(200)
+              ->height(200)
+              ->sharpen(10)
+              ->performOnCollections('default'); // 'default' es el nombre que usas en Nova.
+
+        // Conversión a formato WebP para el frontend.
+        $this->addMediaConversion('webp')
+              ->format('webp')
+              ->quality(80) // Calidad del 80%
+              ->performOnCollections('default');
     }
 }

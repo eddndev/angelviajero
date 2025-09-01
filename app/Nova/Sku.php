@@ -2,6 +2,7 @@
 
 namespace App\Nova;
 
+use App\Http\Requests\StoreSkuRequest;
 use Ebess\AdvancedNovaMediaLibrary\Fields\Images;
 use Illuminate\Http\Request;
 use Laravel\Nova\Fields\ID;
@@ -14,6 +15,7 @@ use Laravel\Nova\Fields\HasMany;
 use Laravel\Nova\Fields\URL;
 use Laravel\Nova\Panel;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Outl1ne\MultiselectField\Multiselect;
 
 class Sku extends Resource
 {
@@ -86,48 +88,53 @@ class Sku extends Resource
             new Panel('Core Details', [
                 ID::make()->sortable(),
 
-                BelongsTo::make('Product')
-                    ->searchable()
-                    ->rules('required'),
+                // 1. Este es el campo del que dependeremos
+                BelongsTo::make('Product')->searchable(),
 
-                Text::make('SKU Code', 'sku_code')
-                    ->sortable()
-                    ->rules('required', 'max:100', 'unique:skus,sku_code,{{resourceId}}'),
+                Text::make('SKU Code', 'sku_code')->sortable(),
             ]),
 
             new Panel('Pricing & Stock', [
-                Currency::make('Price')
-                    ->sortable()
-                    ->rules('required', 'numeric', 'min:0'),
-
-                Currency::make('Sale Price')
-                    ->nullable()
-                    ->rules('nullable', 'numeric', 'min:0', 'lt:price'),
-
-                Currency::make('Cost Price')
-                    ->nullable()
-                    ->rules('nullable', 'numeric', 'min:0')
-                    ->onlyOnForms(), // Hide from index view for data privacy.
-
-                Number::make('Stock Quantity')
-                    ->sortable()
-                    ->rules('required', 'integer', 'min:0'),
+                Currency::make('Price')->sortable(),
+                Currency::make('Sale Price')->nullable(),
+                Currency::make('Cost Price')->nullable()->onlyOnForms(),
+                Number::make('Stock Quantity')->sortable(),
             ]),
 
             new Panel('Variant Definition (EAV)', [
-                // RF-ADM-005c: This is where the admin defines the specific variant.
-                BelongsToMany::make('Attribute Values', 'attributeValues', AttributeValue::class),
+                Multiselect::make('Attribute Values', 'attributeValues')
+                    ->belongsToMany(\App\Nova\AttributeValue::class)
+                    // Quitamos ->api() de aquí. Se definirá dinámicamente.
+                    
+                    ->dependsOn('product', function ($field, $request, $formData) {
+                        // Esta función se ejecuta cuando el campo 'product' cambia.
+                        // $formData contiene todos los datos del formulario actual.
+                        $productId = $formData->product;
+
+                        if ($productId) {
+                            // Si hay un ID de producto, construimos la URL y la asignamos
+                            // al campo usando withMeta(). Esto envía la URL al componente frontend.
+                            $field->withMeta([
+                                'apiUrl' => '/api/nova/product-attribute-values?product_id=' . $productId,
+                            ]);
+                        }
+                    })
+                    
+                    ->reorderable()
+                    ->help('Select a product to see its available attribute values.')
+                    ->displayUsing(function ($values) {
+                        return $values->pluck('value')->implode(', ');
+                    }),
             ]),
 
             new Panel('External Links & Media', [
-                URL::make('Mercado Libre URL')
-                    ->displayUsing(fn () => 'Link')
-                    ->nullable(),
-
-                // SKU-specific images (e.g., the red version of a t-shirt).
+                URL::make('Mercado Libre URL')->displayUsing(fn () => 'Link')->nullable(),
                 Images::make('Images', 'default')
                     ->conversionOnIndexView('thumbnail')
-                    ->multiple(),
+                    ->conversionOnPreview('thumbnail')
+                    ->setFileName(function($originalFilename, $extension, $model){
+                        return md5($originalFilename . time()) . '.' . $extension;
+                    }),
             ]),
 
             new Panel('Associated Data', [
@@ -178,6 +185,17 @@ class Sku extends Resource
     public function actions(NovaRequest $request)
     {
         return [];
+    }
+
+    public static function rulesForCreation(NovaRequest $request): array
+    {
+        return (new StoreSkuRequest)->getRulesForModel();
+    }
+
+    public static function rulesForUpdate(NovaRequest $request, ?\Laravel\Nova\Resource $resource = null): array
+    {
+        // Al actualizar, pasamos el resource actual para que sea ignorado por la regla 'unique'.
+        return (new StoreSkuRequest)->getRulesForModel($resource->resource);
     }
 }
 
